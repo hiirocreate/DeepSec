@@ -1,0 +1,14 @@
+{
+  "name": "deepsec",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "migrate": "node scripts/migrate.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "test:db": "bash scripts/test-db.sh"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}

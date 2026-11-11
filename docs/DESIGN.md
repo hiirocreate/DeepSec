@@ -238,7 +238,7 @@ Oracle Cloud Always Free の注意点:
 | subscriptions | tenant_id, plan, status, started_at, ended_at | 金額列なし |
 | plan_features | plan, feature_key, enabled, limits(jsonb) | プラン別機能制御。管理画面から変更可 |
 | domains | tenant_id, hostname, verification_status, scan_consent_level, active | |
-| domain_verifications | tenant_id, domain_id, method, token_hash, status, verified_at, verified_by | dns_txt / html_file / email / manual |
+| domain_verifications | tenant_id, domain_id, method, token, status, verified_at, verified_by | dns_txt / html_file / email / manual |
 | monitoring_settings | tenant_id (null=全体既定), key, value(jsonb) | 間隔・同時実行数など |
 | monitoring_jobs | tenant_id, domain_id, queue, job_type, status, run_at, attempts, locked_by, heartbeat_at, idempotency_key | キュー本体 |
 | monitoring_job_logs | tenant_id, job_id, level, error_category, message, created_at | 実行ログ |
@@ -260,9 +260,10 @@ Oracle Cloud Always Free の注意点:
 
 1. **DB ロールの分離**
    - `app_api`: API 用。RLS 適用、`BYPASSRLS` なし。
-   - `app_worker`: ワーカー用。同じく RLS 適用。ジョブごとにテナントを設定して処理する。
-   - `app_admin`: マイグレーション専用。アプリからは使用しない。
-2. **RLS**: 全顧客関連テーブルで `ENABLE` + `FORCE ROW LEVEL SECURITY`。ポリシーは `tenant_id = current_setting('app.tenant_id')::uuid`、または運営ロール（`app.role` が admin、もしくは operator かつ `tenant_members` に担当登録あり）。
+   - `app_worker`: 基幹 VM のワーカー用。キューは全顧客分を扱うが、検知・レポート等の顧客データはジョブに紐づく顧客の分しか書き込めない。
+   - `app_scanner`: 調査用 VM のワーカー用。中量・重量キューのジョブ取得と結果登録のみ。顧客・ユーザー・検知・設定の各テーブルは読めない。スキャン対象は、実行中ジョブに限り専用関数 `app.scan_target()` で取得する。
+   - 所有者ロール: マイグレーション専用。RLS の対象外のため、アプリからは使用しない。
+2. **RLS**: 全テーブルで有効化。ポリシーは DB ロール別に定義し、`app.can_access_tenant(tenant_id)` で判定する。この関数は役割の申告値だけでなく `tenant_members` の所属を必ず照合する（顧客 ID や役割を偽っても所属がなければ 0 件になる）。
 3. **リクエスト処理**: セッションからユーザーを特定 → `tenant_members` で所属を検証 → トランザクション内で `SET LOCAL app.user_id / app.tenant_id / app.role` を設定。リクエスト中の顧客 ID は「所属の中からの選択」としてのみ扱い、それだけでは許可しない。
 4. **アプリ層の認可**: ルートごとにロールを宣言。RLS と二重に検査する。
 5. **通知・レポート**: テナント単位のジョブとして生成し、クエリは必ずテナント設定済みトランザクションで実行。運営向けと顧客向けはテンプレートも宛先解決も別経路にする。
