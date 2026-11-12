@@ -1,0 +1,397 @@
+<title>RiskView 管理画面モック</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: fixed left rail (nav) + scrolling work area; summary first, tables below; rail becomes a top tab strip on phones. */
+:root {
+  --bg: #f3f6fa; --surface: #ffffff; --surface-2: #eaf0f6; --line: #d5dee9;
+  --fg: #16233a; --muted: #5a6880; --brand: #012e75; --brand-fg: #ffffff; --cyan: #07e3db;
+  --accent: #012e75; --accent-soft: #dfe9f8;
+  --crit: #c62828; --crit-bg: #fde7e7; --high: #c2570c; --high-bg: #fdebdc;
+  --med: #8a6a00; --med-bg: #fbf1c9; --low: #3d5a80; --low-bg: #e3ebf5;
+  --ok: #17794b; --ok-bg: #dff3e8;
+  --font: "Noto Sans JP", "Yu Gothic", "Hiragino Sans", Meiryo, sans-serif;
+  --num: "Space Grotesk", "Noto Sans JP", sans-serif;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1424; --surface: #121e33; --surface-2: #1a2942; --line: #2a3b59;
+  --fg: #e6edf7; --muted: #9aa9c0; --brand: #071a3d; --brand-fg: #ffffff; --cyan: #07e3db;
+  --accent: #5fe9e3; --accent-soft: #123a4d;
+  --crit: #ff8a80; --crit-bg: #4a1c1c; --high: #ffb074; --high-bg: #4a2a12;
+  --med: #f0d264; --med-bg: #40380f; --low: #a9c1e4; --low-bg: #1f3352;
+  --ok: #7ad9a6; --ok-bg: #123a29; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1424; --surface: #121e33; --surface-2: #1a2942; --line: #2a3b59;
+  --fg: #e6edf7; --muted: #9aa9c0; --brand: #071a3d; --brand-fg: #ffffff; --cyan: #07e3db;
+  --accent: #5fe9e3; --accent-soft: #123a4d;
+  --crit: #ff8a80; --crit-bg: #4a1c1c; --high: #ffb074; --high-bg: #4a2a12;
+  --med: #f0d264; --med-bg: #40380f; --low: #a9c1e4; --low-bg: #1f3352;
+  --ok: #7ad9a6; --ok-bg: #123a29; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.app { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+.rail { background: var(--brand); color: var(--brand-fg); padding: 18px 12px; display: flex; flex-direction: column; gap: 18px;
+  position: sticky; top: 0; align-self: start; height: 100vh; padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 6px; }
+.brand img { width: 38px; height: 38px; background: #fff; border-radius: 8px; padding: 3px; }
+.brand b { font-family: var(--num); font-size: 20px; letter-spacing: .01em; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { color: #c9d6ee; text-decoration: none; padding: 9px 12px; border-radius: 6px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav a[aria-current="page"] { background: var(--cyan); color: #012e75; font-weight: 700; }
+.nav .count { font-family: var(--num); font-size: 12px; background: rgba(255,255,255,.16); border-radius: 10px; padding: 0 7px; }
+.nav a[aria-current="page"] .count { background: rgba(1,46,117,.16); }
+.rail-foot { margin-top: auto; font-size: 12px; color: #c9d6ee; padding: 0 6px; }
+.rail-foot b { display: block; color: #fff; font-size: 13px; }
+.main { padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); min-width: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.mock { background: var(--med-bg); color: var(--med); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; font-weight: 500; }
+.head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 16px; }
+h1 { font-size: 22px; margin: 0; line-height: 1.3; text-wrap: balance; }
+.head p { margin: 0; color: var(--muted); font-size: 13px; }
+h2 { font-size: 15px; margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
+.panel > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.panel > .body { padding: 14px 16px; }
+.grid { display: grid; gap: 14px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.kpi span { color: var(--muted); font-size: 12.5px; display: block; }
+.kpi b { font-family: var(--num); font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--muted); font-size: 12px; }
+.kpi.alert b { color: var(--crit); } .kpi.warn b { color: var(--high); }
+.two { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+.tblwrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+.drawer table, .matrix { min-width: 0; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2); }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; } tbody tr.click:hover { background: var(--surface-2); }
+.num { font-family: var(--num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nowrap { white-space: nowrap; } .muted { color: var(--muted); } .small { font-size: 12.5px; }
+.pill { display: inline-block; border-radius: 4px; padding: 1px 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.sev-critical { background: var(--crit-bg); color: var(--crit); } .sev-high { background: var(--high-bg); color: var(--high); }
+.sev-medium { background: var(--med-bg); color: var(--med); } .sev-low { background: var(--low-bg); color: var(--low); }
+.st-ok { background: var(--ok-bg); color: var(--ok); } .st-bad { background: var(--crit-bg); color: var(--crit); }
+.st-run { background: var(--accent-soft); color: var(--accent); } .st-wait { background: var(--surface-2); color: var(--muted); }
+.st-warn { background: var(--high-bg); color: var(--high); }
+.plan { font-family: var(--num); font-size: 11.5px; font-weight: 700; letter-spacing: .04em; border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; white-space: nowrap; }
+.plan.PREMIUM { background: var(--cyan); color: #012e75; border-color: var(--cyan); }
+.plan.STANDARD { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.filters label { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--muted); }
+select, input[type="search"], input[type="number"], input[type="month"] { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; max-width: 100%; }
+a.btn { text-decoration: none; display: inline-block; }
+.btn { color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { background: var(--surface-2); } .btn.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar { display: grid; grid-template-columns: 72px minmax(0, 1fr) 40px; gap: 10px; align-items: center; font-size: 13px; }
+.bar i { display: block; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.bar i u { display: block; height: 100%; border-radius: 5px; }
+.meter { display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; gap: 10px; align-items: center; font-size: 13px; }
+.meter i { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; display: block; }
+.meter i u { display: block; height: 100%; background: var(--accent); }
+.dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 13.5px; }
+.dl dt { color: var(--muted); } .dl dd { margin: 0; overflow-wrap: anywhere; }
+.drawer { position: fixed; inset: 0; background: rgba(4, 12, 28, .5); display: flex; justify-content: flex-end; z-index: 20; }
+.drawer > div { background: var(--surface); width: min(560px, 100%); height: 100%; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+  padding-top: calc(18px + env(safe-area-inset-top, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+.drawer h2 { font-size: 17px; }
+.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.hist li { border-left: 2px solid var(--line); padding-left: 10px; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 6px; z-index: 30; font-size: 13.5px; max-width: 90%; }
+.matrix td, .matrix th { text-align: center; } .matrix td:first-child, .matrix th:first-child { text-align: left; }
+.note { color: var(--muted); font-size: 12.5px; margin: 0; }
+svg text { font-family: var(--num); font-size: 10px; fill: var(--muted); }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)); gap: 10px; overflow-x: auto; }
+  .brand b { display: none; } .rail-foot { display: none; }
+  .nav { flex-direction: row; } .nav a { white-space: nowrap; gap: 6px; padding: 7px 10px; }
+  .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) { .drawer > div { animation: slide .16s ease-out; } @keyframes slide { from { transform: translateX(24px); opacity: .6 } } }
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><img src="data:image/png;base64,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" alt=""><b>RiskView</b></div>
+    <nav class="nav" id="nav" aria-label="メニュー"></nav>
+    <div class="rail-foot"><b>管理 太郎</b>システム管理者<br>MFA 有効</div>
+  </aside>
+  <main class="main"><div class="wrap">
+    <div class="mock">モック画面です。表示している顧客・検知・ジョブはすべて架空のサンプルデータで、操作内容は保存されません。</div>
+    <div id="view"></div>
+  </div></main>
+</div>
+<div id="drawer" class="drawer" hidden></div>
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- mock data (deterministic) ----------
+  var seed = 20261112;
+  function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+  function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+  var NOW = new Date("2026-11-12T09:30:00+09:00");
+  function ago(h) { return new Date(NOW.getTime() - h * 3600e3); }
+  function fmt(d) { var p = function (n) { return String(n).padStart(2, "0"); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  var names = ["サンプル商事", "あおぞら製作所", "みなと物流", "ひかり会計事務所", "北斗建設", "さくらデンタルクリニック", "東和フーズ", "つばさ旅行", "山手不動産", "みどり薬局", "港北電機", "朝日印刷"];
+  var slugs = ["sample-shoji", "aozora-mfg", "minato-logi", "hikari-kaikei", "hokuto-kensetsu", "sakura-dental", "towa-foods", "tsubasa-travel", "yamate-re", "midori-pharm", "kohoku-denki", "asahi-print"];
+  var plans = ["STANDARD", "BASIC", "PREMIUM", "BASIC", "STANDARD", "BASIC", "PREMIUM", "STANDARD", "BASIC", "STANDARD", "PREMIUM", "BASIC"];
+  var tenants = names.map(function (n, i) {
+    var d = [slugs[i] + ".example.jp"];
+    if (plans[i] !== "BASIC") d.push("shop." + slugs[i] + ".example.jp");
+    if (plans[i] === "PREMIUM") d.push("portal." + slugs[i] + ".example.jp");
+    return { id: "T" + String(i + 1).padStart(3, "0"), name: "株式会社" + n, plan: plans[i], status: i === 8 ? "停止中" : "稼働中",
+      contact: pick(["佐藤", "鈴木", "高橋", "田中", "伊藤", "渡辺"]) + " 様", email: "it@" + slugs[i] + ".example.jp",
+      since: "202" + (4 + (i % 3)) + "-" + String(1 + (i * 5) % 12).padStart(2, "0") + "-01",
+      domains: d.map(function (h, k) { return { host: h, verified: !(i === 5 && k === 0) && !(i === 9 && k === 1), consent: plans[i] === "BASIC" ? "なし" : "標準" }; }),
+      autoReport: i % 4 !== 3 };
+  });
+  var RANK = { BASIC: 1, STANDARD: 2, PREMIUM: 3 };
+  var TYPES = [
+    { k: "SSL証明書", t: "SSL証明書の有効期限が14日以内", sev: "high", conf: "高", src: "SSL/HTTPS 監視", plan: 1, rec: "証明書を更新してください。自動更新を設定している場合は更新処理の失敗を確認してください。" },
+    { k: "SSL証明書", t: "SSL証明書の有効期限切れ", sev: "critical", conf: "高", src: "SSL/HTTPS 監視", plan: 1, rec: "ただちに証明書を更新してください。" },
+    { k: "DNS", t: "NSレコードの変更を検知", sev: "medium", conf: "高", src: "DNS 監視", plan: 1, rec: "意図した変更かを確認してください。心当たりがない場合はレジストラの管理画面を確認してください。" },
+    { k: "メール認証", t: "DMARCレコードが未設定", sev: "medium", conf: "高", src: "メール認証設定監視", plan: 1, rec: "p=none からDMARCレコードを設定し、レポートを確認しながら段階的に強化してください。" },
+    { k: "メール認証", t: "SPFが ~all（ソフトフェイル）", sev: "low", conf: "高", src: "メール認証設定監視", plan: 1, rec: "送信元を整理したうえで -all への変更を検討してください。" },
+    { k: "HTTPヘッダー", t: "HSTSヘッダーが未設定", sev: "low", conf: "高", src: "HTTP セキュリティヘッダー監視", plan: 1, rec: "Strict-Transport-Security ヘッダーを設定してください。" },
+    { k: "HTTPヘッダー", t: "Content-Security-Policy が未設定", sev: "low", conf: "高", src: "HTTP セキュリティヘッダー監視", plan: 1, rec: "CSPの導入を検討してください。" },
+    { k: "脆弱性情報", t: "CMSのバージョンに既知の脆弱性の可能性", sev: "high", conf: "中", src: "NVD", plan: 1, rec: "利用中のバージョンを確認し、該当する場合は最新版へ更新してください。外部観測による推定のため確度は中です。" },
+    { k: "脆弱性診断", t: "管理画面のログインページが外部公開", sev: "medium", conf: "高", src: "Nuclei", plan: 2, rec: "接続元IPの制限、または多要素認証の導入を検討してください。" },
+    { k: "脆弱性診断", t: ".git ディレクトリが外部から参照可能", sev: "high", conf: "高", src: "Nuclei", plan: 2, rec: "Webサーバーの設定で .git へのアクセスを拒否してください。" },
+    { k: "公開資産", t: "未登録のサブドメインを検出", sev: "low", conf: "中", src: "公開資産調査", plan: 2, rec: "自社で管理しているものかを確認し、不要であれば停止してください。" },
+    { k: "情報漏洩", t: "公開リポジトリにAPIキーらしき文字列", sev: "critical", conf: "中", src: "GitHub 公開リポジトリ", plan: 2, rec: "該当のキーをただちに無効化し、再発行してください。検出値: AKIA************（マスク済み）" },
+    { k: "リーク情報", t: "公開リークサイトに企業名の掲載", sev: "high", conf: "低", src: "RansomLook", plan: 3, rec: "同名他社の可能性があります。掲載内容と自社の状況を照合してください。出典: RansomLook (CC BY 4.0)" }
+  ];
+  var STATUS = ["未対応", "対応中", "対応済み", "誤検知", "保留"];
+  var SEVJ = { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
+  var events = [];
+  for (var i = 0; i < 46; i++) {
+    var tn = tenants[Math.floor(rnd() * tenants.length)], ty;
+    do { ty = pick(TYPES); } while (ty.plan > RANK[tn.plan]);
+    var h = Math.floor(rnd() * 24 * 28) + 1, st = rnd() < 0.42 ? "未対応" : pick(STATUS);
+    var state = st === "対応済み" ? "解消" : (h < 30 ? "新規" : "継続");
+    events.push({ id: "EV-" + String(2641 - i), tenant: tn, type: ty, host: pick(tn.domains).host, first: ago(h + Math.floor(rnd() * 200)), last: ago(h), status: st, state: state,
+      assignee: st === "未対応" ? "—" : pick(["運営 花子", "運営 次郎"]),
+      hist: st === "未対応" ? [] : [{ at: ago(Math.max(1, h - 2)), by: "運営 花子", from: "未対応", to: st, note: "顧客担当者へ連絡済み" }] });
+  }
+  events.sort(function (a, b) { return b.last - a.last; });
+
+  var JOBS = [["light", "SSL/HTTPS 確認"], ["light", "DNS 確認"], ["light", "メール認証確認"], ["light", "HTTPヘッダー確認"], ["light", "脆弱性情報の照合"], ["medium", "Nuclei 診断"], ["medium", "サブドメイン調査"], ["medium", "公開リポジトリ調査"], ["heavy", "ZAP 受動診断"], ["heavy", "リーク情報照合"], ["notify", "通知メール送信"], ["report", "月次レポート生成"]];
+  var QJ = { light: "軽量", medium: "中量", heavy: "重量", notify: "通知", report: "レポート" };
+  var jobs = [];
+  for (i = 0; i < 34; i++) {
+    var j = pick(JOBS), t2 = pick(tenants), r = rnd(), s = r < 0.62 ? "成功" : r < 0.74 ? "失敗" : r < 0.84 ? "実行中" : r < 0.95 ? "待機" : "保留";
+    var hh = s === "待機" || s === "保留" ? -Math.floor(rnd() * 20) : Math.floor(rnd() * 30);
+    jobs.push({ id: "J-" + (88410 - i), q: j[0], type: j[1], tenant: t2, status: s, at: ago(hh), dur: s === "成功" || s === "失敗" ? Math.floor(rnd() * (j[0] === "light" ? 20 : 600)) + 2 : null,
+      err: s === "失敗" ? pick(["タイムアウト", "DNS取得失敗", "外部API接続失敗", "対象サイト応答なし"]) : (s === "保留" ? "サーバー負荷が高いため保留" : ""), tries: s === "失敗" ? 3 : 1 });
+  }
+  jobs.sort(function (a, b) { return b.at - a.at; });
+  var reports = [];
+  tenants.forEach(function (t, k) { ["2026-10", "2026-09"].forEach(function (m, n) {
+    var c = events.filter(function (e) { return e.tenant === t; }).length;
+    reports.push({ tenant: t, month: m, status: !t.autoReport ? "生成済み（手動送信）" : (k === 6 && n === 0 ? "送信失敗" : "送信済み"), found: Math.max(0, c - n), unresolved: Math.floor(c / 2), sent: t.autoReport ? m.replace("-10", "-11").replace("-09", "-10") + "-01 09:00" : "—" });
+  }); });
+  var apis = [["NVD", "正常", "09:02"], ["CISA KEV", "正常", "06:00"], ["OSV.dev", "正常", "09:02"], ["GitHub 検索", "制限中（レート上限）", "08:41"], ["RansomLook", "正常", "08:30"], ["Tor 公開サイト", "未取得（接続失敗）", "昨日 23:10"], ["メール送信", "正常（本日 37 / 90 通）", "09:21"]];
+  var settings = { light: 4, medium: 1, heavy: 1, notify: 2, report: 1, basic: 24, scan: 168, cpu: 85, mem: 85, disk: 90 };
+  var FEATS = [["SSL・DNS・メール認証・HTTPヘッダー監視", 1], ["公開脆弱性情報との照合", 1], ["脆弱性診断（Nuclei）", 2], ["受動的Web診断（ZAP）", 2], ["公開資産調査", 2], ["公開Web・公開リポジトリ調査", 2], ["公開リークサイト掲載確認", 3], ["詳細月次レポート", 2]];
+  var feat = FEATS.map(function (f) { return ["BASIC", "STANDARD", "PREMIUM"].map(function (p) { return RANK[p] >= f[1]; }); });
+
+  // ---------- helpers ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var sevPill = function (s) { return '<span class="pill sev-' + s + '">' + SEVJ[s] + "</span>"; };
+  var stCls = { "成功": "st-ok", "失敗": "st-bad", "実行中": "st-run", "待機": "st-wait", "保留": "st-warn", "未対応": "st-bad", "対応中": "st-run", "対応済み": "st-ok", "誤検知": "st-wait", "稼働中": "st-ok", "停止中": "st-wait", "送信済み": "st-ok", "送信失敗": "st-bad" };
+  var pill = function (s) { return '<span class="pill ' + (stCls[s] || (/正常/.test(s) ? "st-ok" : /未取得|失敗/.test(s) ? "st-bad" : /制限/.test(s) ? "st-warn" : "st-wait")) + '">' + esc(s) + "</span>"; };
+  var planTag = function (p) { return '<span class="plan ' + p + '">' + p + "</span>"; };
+  var open = function (e) { return e.status === "未対応" || e.status === "対応中"; };
+  function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2600); }
+  function table(cols, rows, cls) {
+    return '<div class="tblwrap"><table class="' + (cls || "") + '"><thead><tr>' + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      (rows.length ? rows.join("") : '<tr><td colspan="' + cols.length + '" class="muted">条件に一致するデータはありません。</td></tr>') + "</tbody></table></div>";
+  }
+  function head(t, sub) { return '<div class="head"><h1>' + t + "</h1><p>" + sub + "</p></div>"; }
+  function evRow(e, withTenant) {
+    return '<tr class="click" data-ev="' + e.id + '" tabindex="0"><td class="num muted">' + fmt(e.last).slice(5) + "</td><td>" + sevPill(e.type.sev) + "</td>" +
+      (withTenant ? "<td class=\"nowrap\">" + esc(e.tenant.name) + "</td>" : "") + "<td>" + esc(e.type.t) + '<div class="small muted">' + esc(e.host) + "</div></td><td class=\"nowrap\">" + esc(e.type.k) + '</td><td class="nowrap">' + e.state + "</td><td>" + pill(e.status) + "</td></tr>";
+  }
+
+  // ---------- views ----------
+  var state = { f: { tenant: "", sev: "", kind: "", status: "open", days: "30", q: "" }, page: 1, jf: "", cust: null, cq: "" };
+  var V = {};
+
+  V.dashboard = function () {
+    var op = events.filter(open), crit = op.filter(function (e) { return e.type.sev === "critical"; }).length, hi = op.filter(function (e) { return e.type.sev === "high"; }).length;
+    var jf = jobs.filter(function (j) { return j.status === "失敗"; }).length, doms = tenants.reduce(function (n, t) { return n + t.domains.length; }, 0);
+    var k = function (l, v, s, c) { return '<div class="kpi ' + (c || "") + '"><span>' + l + "</span><b>" + v + "</b> <small>" + (s || "") + "</small></div>"; };
+    var sev = ["critical", "high", "medium", "low"].map(function (s) { var n = op.filter(function (e) { return e.type.sev === s; }).length; return [s, n]; }), mx = Math.max.apply(null, sev.map(function (x) { return x[1]; })) || 1;
+    var col = { critical: "--crit", high: "--high", medium: "--med", low: "--low" };
+    var days = []; for (var d = 13; d >= 0; d--) days.push(events.filter(function (e) { var h = (NOW - e.first) / 3600e3; return h >= d * 24 && h < (d + 1) * 24; }).length + (d % 3 === 0 ? 1 : 0));
+    var dm = Math.max.apply(null, days) || 1, W = 320, H = 96, bw = W / 14;
+    var chart = '<svg viewBox="0 0 ' + W + " " + (H + 16) + '" width="100%" role="img" aria-label="直近14日の新規検知数"><line x1="0" y1="' + H + '" x2="' + W + '" y2="' + H + '" stroke="var(--line)"/>' +
+      days.map(function (v, n) { var hh = Math.round(v / dm * (H - 14)); return '<rect x="' + (n * bw + 3) + '" y="' + (H - hh) + '" width="' + (bw - 6) + '" height="' + hh + '" rx="2" fill="var(--accent)"/>' + (v ? '<text x="' + (n * bw + bw / 2) + '" y="' + (H - hh - 3) + '" text-anchor="middle">' + v + "</text>" : ""); }).join("") +
+      '<text x="2" y="' + (H + 12) + '">10/30</text><text x="' + (W - 2) + '" y="' + (H + 12) + '" text-anchor="end">11/12</text></svg>';
+    return head("ダッシュボード", "最終更新 " + fmt(NOW)) +
+      '<div class="grid kpis">' + k("登録顧客", tenants.length, "稼働中 " + tenants.filter(function (t) { return t.status === "稼働中"; }).length) + k("監視対象ドメイン", doms) +
+      k("未対応アラート", op.filter(function (e) { return e.status === "未対応"; }).length, "対応中 " + op.filter(function (e) { return e.status === "対応中"; }).length, "warn") +
+      k("Critical / High", crit + " / " + hi, "未解消", crit ? "alert" : "") + k("監視実行の失敗", jf, "直近24時間", jf ? "warn" : "") + k("通知の失敗", 1, "再送上限に到達", "warn") + "</div>" +
+      '<div class="grid two"><section class="panel"><header><h2>直近の検知</h2><a class="btn" href="#findings">すべて表示</a></header>' +
+      table(["検知日時", "重要度", "顧客", "内容", "種別", "状態", "対応"], events.slice(0, 8).map(function (e) { return evRow(e, true); })) + "</section>" +
+      '<div class="grid" style="align-content:start"><section class="panel"><header><h2>未解消の重要度別件数</h2></header><div class="body bars">' +
+      sev.map(function (x) { return '<div class="bar"><span>' + SEVJ[x[0]] + '</span><i><u style="width:' + (x[1] / mx * 100) + "%;background:var(" + col[x[0]] + ')"></u></i><b class="num">' + x[1] + "</b></div>"; }).join("") + "</div></section>" +
+      '<section class="panel"><header><h2>新規検知（直近14日）</h2></header><div class="body">' + chart + "</div></section>" +
+      '<section class="panel"><header><h2>サーバー稼働状況</h2></header><div class="body bars">' +
+      [["基幹 CPU", 31], ["基幹 メモリ", 58], ["調査用 CPU", 74], ["調査用 メモリ", 66], ["ディスク", 43]].map(function (m) { return '<div class="meter"><span class="small">' + m[0] + '</span><i><u style="width:' + m[1] + '%"></u></i><b class="num">' + m[1] + "%</b></div>"; }).join("") +
+      '<p class="note">監視停止中: Tor 公開サイト（昨日 23:10 から未取得）</p></div></section></div></div>';
+  };
+
+  V.customers = function () {
+    var list = tenants.filter(function (t) { return !state.cq || (t.name + t.id + t.domains.map(function (d) { return d.host; }).join()).indexOf(state.cq) >= 0; });
+    var rows = list.map(function (t) {
+      var n = events.filter(function (e) { return e.tenant === t && open(e); }).length;
+      return '<tr class="click" data-cust="' + t.id + '" tabindex="0"><td class="num muted">' + t.id + "</td><td>" + esc(t.name) + "</td><td>" + planTag(t.plan) + "</td><td>" + pill(t.status) + '</td><td class="num">' + t.domains.length + '</td><td class="num">' + n + '</td><td class="num muted">' + t.since + "</td></tr>";
+    });
+    var det = "";
+    if (state.cust) {
+      var t = state.cust, ev = events.filter(function (e) { return e.tenant === t; });
+      det = '<section class="panel"><header><h2>' + esc(t.name) + '</h2><span><button class="btn" data-act="edit">編集</button> <button class="btn" data-act="closecust">閉じる</button></span></header><div class="body grid two">' +
+        '<dl class="dl"><dt>顧客ID</dt><dd class="num">' + t.id + "</dd><dt>契約プラン</dt><dd>" + planTag(t.plan) + "</dd><dt>契約状態</dt><dd>" + pill(t.status) + "</dd><dt>担当者</dt><dd>" + esc(t.contact) + "</dd><dt>メール</dt><dd>" + esc(t.email) +
+        "</dd><dt>登録日</dt><dd class=\"num\">" + t.since + "</dd><dt>通知先</dt><dd>" + esc(t.email) + "（顧客管理者）</dd><dt>月次レポート</dt><dd>" + (t.autoReport ? "自動送信: 毎月1日 09:00、PDF添付あり" : "自動送信: 無効") + "</dd></dl>" +
+        "<div><h2 style=\"margin-bottom:8px\">監視対象ドメイン</h2>" + table(["ドメイン", "所有確認", "診断の許可"], t.domains.map(function (d) { return "<tr><td>" + esc(d.host) + "</td><td>" + (d.verified ? pill("確認済み").replace("st-wait", "st-ok") : '<span class="pill st-warn">確認待ち（DNS TXT）</span>') + "</td><td>" + d.consent + "</td></tr>"; })) +
+        '<p class="note" style="margin-top:8px">所有確認が済んでいないドメインには診断を実行しません。</p></div></div>' +
+        "<header><h2>この顧客の検知履歴（" + ev.length + "件）</h2></header>" + table(["検知日時", "重要度", "内容", "種別", "状態", "対応"], ev.slice(0, 6).map(function (e) { return evRow(e, false); })) + "</section>";
+    }
+    return head("顧客管理", tenants.length + " 社") + det +
+      '<section class="panel"><div class="filters"><label>検索<input type="search" id="cq" placeholder="企業名・ID・ドメイン" value="' + esc(state.cq) + '"></label><span style="margin-left:auto;align-self:end"><button class="btn primary" data-act="new">顧客を登録</button></span></div>' +
+      table(["ID", "企業名", "プラン", "契約状態", "ドメイン", "未解消", "登録日"], rows) + "</section>";
+  };
+
+  V.findings = function () {
+    var f = state.f, kinds = TYPES.map(function (t) { return t.k; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+    var list = events.filter(function (e) {
+      return (!f.tenant || e.tenant.id === f.tenant) && (!f.sev || e.type.sev === f.sev) && (!f.kind || e.type.k === f.kind) &&
+        (f.status === "" || (f.status === "open" ? open(e) : e.status === f.status)) && (NOW - e.last) / 864e5 <= +f.days && (!f.q || (e.host + e.type.t + e.id).indexOf(f.q) >= 0);
+    });
+    var per = 10, pages = Math.max(1, Math.ceil(list.length / per)); if (state.page > pages) state.page = pages;
+    var sel = function (id, label, opts, v) { return "<label>" + label + '<select id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === v ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>"; };
+    return head("検知情報", "全 " + events.length + " 件のうち " + list.length + " 件を表示") +
+      '<section class="panel"><div class="filters">' +
+      sel("f-tenant", "顧客", [["", "すべて"]].concat(tenants.map(function (t) { return [t.id, t.name]; })), f.tenant) +
+      sel("f-sev", "重要度", [["", "すべて"], ["critical", "Critical"], ["high", "High"], ["medium", "Medium"], ["low", "Low"]], f.sev) +
+      sel("f-kind", "検知種別", [["", "すべて"]].concat(kinds.map(function (k) { return [k, k]; })), f.kind) +
+      sel("f-status", "対応状況", [["open", "未解消（未対応・対応中）"], ["", "すべて"]].concat(STATUS.map(function (s) { return [s, s]; })), f.status) +
+      sel("f-days", "期間", [["7", "直近7日"], ["30", "直近30日"], ["90", "直近90日"]], f.days) +
+      '<label>ドメイン・内容<input type="search" id="f-q" value="' + esc(f.q) + '" placeholder="例: shop."></label>' +
+      '<span style="margin-left:auto;align-self:end"><button class="btn" data-act="csv">CSV出力</button></span></div>' +
+      table(["検知日時", "重要度", "顧客", "内容", "種別", "状態", "対応"], list.slice((state.page - 1) * per, state.page * per).map(function (e) { return evRow(e, true); })) +
+      '<div class="pager"><span>' + state.page + " / " + pages + ' ページ（1ページ10件）</span><span><button class="btn" data-act="prev"' + (state.page <= 1 ? " disabled" : "") + '>前へ</button> <button class="btn" data-act="next"' + (state.page >= pages ? " disabled" : "") + ">次へ</button></span></div></section>";
+  };
+
+  V.jobs = function () {
+    var cnt = function (s) { return jobs.filter(function (j) { return j.status === s; }).length; };
+    var list = jobs.filter(function (j) { return !state.jf || j.status === state.jf; });
+    return head("監視状況", "ジョブは管理画面を閉じていてもサーバー側で実行されます") +
+      '<div class="grid kpis">' + ["実行中", "待機", "成功", "失敗", "保留"].map(function (s) { return '<div class="kpi ' + (s === "失敗" ? "warn" : "") + '"><span>' + s + "</span><b>" + cnt(s) + "</b></div>"; }).join("") + "</div>" +
+      '<div class="grid two"><section class="panel"><div class="filters"><label>状態<select id="jf">' + [["", "すべて"], ["実行中", "実行中"], ["待機", "待機（次回実行予定）"], ["成功", "成功"], ["失敗", "失敗"], ["保留", "保留"]].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === state.jf ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label></div>" +
+      table(["ジョブ", "キュー", "種別", "顧客", "状態", "実行・予定", "所要"], list.slice(0, 14).map(function (j) {
+        return '<tr><td class="num muted">' + j.id + "</td><td>" + QJ[j.q] + "</td><td>" + esc(j.type) + (j.err ? '<div class="small muted">' + esc(j.err) + (j.tries > 1 ? "（" + j.tries + "回試行）" : "") + "</div>" : "") + "</td><td>" + esc(j.tenant.name) + "</td><td>" + pill(j.status) + '</td><td class="num muted">' + fmt(j.at).slice(5) + '</td><td class="num">' + (j.dur ? j.dur + "秒" : "—") + "</td></tr>";
+      })) + '<div class="pager"><span>' + Math.min(14, list.length) + " / " + list.length + ' 件を表示</span><span class="small">失敗は「異常なし」として扱わず、レポートに未取得として記載します</span></div></section>' +
+      '<div class="grid" style="align-content:start"><section class="panel"><header><h2>外部情報源の接続状況</h2></header>' +
+      table(["情報源", "状態", "最終成功"], apis.map(function (a) { return "<tr><td>" + a[0] + "</td><td>" + pill(a[1]) + '</td><td class="num muted">' + a[2] + "</td></tr>"; })) + "</section>" +
+      '<section class="panel"><header><h2>キュー別の同時実行数</h2></header><div class="body bars">' +
+      [["軽量", 3, settings.light], ["中量", 1, settings.medium], ["重量", 0, settings.heavy], ["通知", 1, settings.notify], ["レポート", 0, settings.report]].map(function (q) { return '<div class="meter"><span class="small">' + q[0] + '</span><i><u style="width:' + (q[1] / q[2] * 100) + '%"></u></i><b class="num">' + q[1] + "/" + q[2] + "</b></div>"; }).join("") + "</div></section></div></div>";
+  };
+
+  V.reports = function () {
+    return head("月次レポート", "PDFはサーバー側で生成します") +
+      '<section class="panel"><header><h2>生成済みレポート</h2><span class="small muted">検知がない月も「監視範囲内では新規の異常を確認していません」と記載し、安全とは断定しません</span></header>' +
+      table(["対象月", "顧客", "プラン", "検知", "未解消", "状態", "送信日時", ""], reports.map(function (r) {
+        return '<tr><td class="num">' + r.month + "</td><td>" + esc(r.tenant.name) + "</td><td>" + planTag(r.tenant.plan) + '</td><td class="num">' + r.found + '</td><td class="num">' + r.unresolved + "</td><td>" + pill(r.status) + '</td><td class="num muted">' + r.sent + '</td><td class="nowrap"><button class="btn" data-act="pdf">PDF</button>' + (r.status === "送信失敗" ? ' <button class="btn" data-act="resend">再送</button>' : "") + "</td></tr>";
+      })) + "</section>";
+  };
+
+  V.system = function () {
+    var n = function (id, label, v, unit) { return "<label>" + label + '<span><input type="number" id="' + id + '" value="' + v + '" min="1" style="width:84px"> ' + unit + "</span></label>"; };
+    return head("システム設定", "システム管理者のみ変更できます") +
+      '<div class="grid two"><section class="panel"><header><h2>プラン別機能設定</h2><span class="small muted">料金とは切り離して管理します</span></header>' +
+      table(["機能", "BASIC", "STANDARD", "PREMIUM"], FEATS.map(function (f, r) { return "<tr><td>" + f[0] + "</td>" + feat[r].map(function (on, c) { return '<td><input type="checkbox" id="ft-' + r + "-" + c + '" data-ft="' + r + "," + c + '"' + (on ? " checked" : "") + ' aria-label="' + f[0] + '"></td>'; }).join("") + "</tr>"; }), "matrix") + "</section>" +
+      '<div class="grid" style="align-content:start"><section class="panel"><header><h2>監視間隔</h2></header><div class="filters" style="border:0">' + n("s-basic", "基本監視", settings.basic, "時間ごと") + n("s-scan", "脆弱性・資産調査", settings.scan, "時間ごと") + "</div></section>" +
+      '<section class="panel"><header><h2>同時実行数</h2></header><div class="filters" style="border:0">' + n("s-light", "軽量", settings.light, "") + n("s-medium", "中量", settings.medium, "") + n("s-heavy", "重量", settings.heavy, "") + "</div></section>" +
+      '<section class="panel"><header><h2>負荷による実行保留のしきい値</h2></header><div class="filters" style="border:0">' + n("s-cpu", "CPU", settings.cpu, "%") + n("s-mem", "メモリ", settings.mem, "%") + n("s-disk", "ディスク", settings.disk, "%") + '</div><div class="pager"><span></span><button class="btn primary" data-act="save">設定を保存</button></div></section></div></div>';
+  };
+
+  // ---------- drawer ----------
+  function showEvent(id) {
+    var e = events.filter(function (x) { return x.id === id; })[0]; if (!e) return;
+    $("drawer").innerHTML = '<div role="dialog" aria-label="検知詳細"><div class="head"><h2>' + esc(e.type.t) + '</h2><button class="btn" data-act="closedrawer">閉じる</button></div>' +
+      "<div>" + sevPill(e.type.sev) + " " + pill(e.status) + ' <span class="pill st-wait">' + e.state + "</span></div>" +
+      '<dl class="dl"><dt>イベントID</dt><dd class="num">' + e.id + "</dd><dt>顧客</dt><dd>" + esc(e.tenant.name) + "</dd><dt>対象ドメイン</dt><dd>" + esc(e.host) + "</dd><dt>検知種別</dt><dd>" + e.type.k + "</dd><dt>情報源</dt><dd>" + esc(e.type.src) +
+      "</dd><dt>判定確度</dt><dd>" + e.type.conf + '</dd><dt>初回検知</dt><dd class="num">' + fmt(e.first) + '</dd><dt>最終検知</dt><dd class="num">' + fmt(e.last) + "</dd><dt>担当者</dt><dd>" + e.assignee + "</dd><dt>推奨対応</dt><dd>" + esc(e.type.rec) + "</dd></dl>" +
+      '<section class="panel"><header><h2>対応状況の変更</h2></header><div class="filters" style="border:0"><label>対応状況<select id="d-status">' + STATUS.map(function (s) { return "<option" + (s === e.status ? " selected" : "") + ">" + s + "</option>"; }).join("") +
+      '</select></label><label style="flex:1 1 180px">メモ<input type="search" id="d-note" placeholder="対応内容を記録"></label><span style="align-self:end"><button class="btn primary" data-act="setstatus" data-id="' + e.id + '">更新</button></span></div></section>' +
+      "<div><h2 style=\"margin-bottom:8px\">対応履歴</h2>" + (e.hist.length ? '<ul class="hist">' + e.hist.map(function (h) { return '<li><span class="num muted">' + fmt(h.at) + "</span> " + esc(h.by) + "<br>" + h.from + " → <b>" + h.to + "</b>" + (h.note ? "：" + esc(h.note) : "") + "</li>"; }).join("") + "</ul>" : '<p class="note">まだ対応履歴はありません。</p>') + "</div></div>";
+    $("drawer").hidden = false;
+  }
+
+  // ---------- routing & events ----------
+  var NAV = [["dashboard", "ダッシュボード"], ["customers", "顧客管理"], ["findings", "検知情報"], ["jobs", "監視状況"], ["reports", "月次レポート"], ["system", "システム設定"]];
+  function route() { var h = location.hash.replace("#", ""); return V[h] ? h : "dashboard"; }
+  function render() {
+    var r = route(), un = events.filter(function (e) { return e.status === "未対応"; }).length, jf = jobs.filter(function (j) { return j.status === "失敗"; }).length;
+    $("nav").innerHTML = NAV.map(function (n) { var c = n[0] === "findings" ? un : n[0] === "jobs" ? jf : 0; return '<a href="#' + n[0] + '"' + (n[0] === r ? ' aria-current="page"' : "") + ">" + n[1] + (c ? '<span class="count">' + c + "</span>" : "") + "</a>"; }).join("");
+    $("view").innerHTML = '<div class="wrap">' + V[r]() + "</div>";
+  }
+  window.addEventListener("hashchange", function () { state.page = 1; $("drawer").hidden = true; render(); window.scrollTo(0, 0); });
+  document.addEventListener("click", function (ev) {
+    var t = ev.target, row = t.closest("[data-ev]"), cust = t.closest("[data-cust]"), act = t.closest("[data-act]");
+    if (t.id === "drawer") { $("drawer").hidden = true; return; }
+    if (act) {
+      var a = act.dataset.act;
+      if (a === "closedrawer") $("drawer").hidden = true;
+      else if (a === "prev") { state.page--; render(); } else if (a === "next") { state.page++; render(); }
+      else if (a === "closecust") { state.cust = null; render(); }
+      else if (a === "setstatus") {
+        var e = events.filter(function (x) { return x.id === act.dataset.id; })[0], to = $("d-status").value;
+        if (to === e.status) { toast("対応状況は変わっていません"); return; }
+        e.hist.unshift({ at: NOW, by: "管理 太郎", from: e.status, to: to, note: $("d-note").value }); e.status = to; e.assignee = "管理 太郎"; if (to === "対応済み") e.state = "解消";
+        render(); showEvent(e.id); toast("対応状況を「" + to + "」に更新しました（モックのため保存されません）");
+      }
+      else if (a === "csv") toast("本番ではサーバー側でCSVを生成してダウンロードします");
+      else if (a === "pdf") toast("本番ではサーバー側で生成したPDFをダウンロードします");
+      else if (a === "resend") toast("再送ジョブを登録しました（モック）");
+      else if (a === "save") toast("設定を保存しました（モックのため保存されません）");
+      else if (a === "new" || a === "edit") toast("登録・編集フォームは本実装で追加します");
+      return;
+    }
+    if (row) { showEvent(row.dataset.ev); return; }
+    if (cust) { state.cust = tenants.filter(function (x) { return x.id === cust.dataset.cust; })[0]; render(); window.scrollTo(0, 0); }
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") $("drawer").hidden = true;
+    if (ev.key === "Enter" && ev.target.matches("tr.click")) ev.target.click();
+  });
+  document.addEventListener("change", function (ev) {
+    var id = ev.target.id, m = { "f-tenant": "tenant", "f-sev": "sev", "f-kind": "kind", "f-status": "status", "f-days": "days" };
+    if (m[id]) { state.f[m[id]] = ev.target.value; state.page = 1; render(); }
+    else if (id === "jf") { state.jf = ev.target.value; render(); }
+    else if (ev.target.dataset.ft) { var p = ev.target.dataset.ft.split(","); feat[+p[0]][+p[1]] = ev.target.checked; }
+  });
+  document.addEventListener("input", function (ev) {
+    var id = ev.target.id; if (id !== "f-q" && id !== "cq") return;
+    if (id === "f-q") { state.f.q = ev.target.value; state.page = 1; } else state.cq = ev.target.value;
+    var pos = ev.target.selectionStart; render(); var el = $(id); el.focus(); el.setSelectionRange(pos, pos);
+  });
+  render();
+})();
+</script>
