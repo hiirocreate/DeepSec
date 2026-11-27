@@ -30,4 +30,4 @@ as_pg "$PG_BIN/pg_ctl" -D "$DATA/pg" -o "-p $PORT -c listen_addresses=127.0.0.1 
 as_pg "$PG_BIN/createdb" -h 127.0.0.1 -p "$PORT" -U owner deepsec_test
 
 export TEST_DATABASE_URL="postgres://owner@127.0.0.1:$PORT/deepsec_test"
-node --test "test/db/*.test.ts"
+node --test "$@" "test/db/*.test.ts"
